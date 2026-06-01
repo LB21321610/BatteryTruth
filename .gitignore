@@ -1,0 +1,12 @@
+.build/
+.swiftpm/
+.codex/
+dist/
+.DS_Store
+**/.DS_Store
+DerivedData/
+*.xcuserstate
+*.zip
+*.tar.gz
+Assets/AppIcon/*.iconset/
+Assets/AppIcon/rendered-*.png
