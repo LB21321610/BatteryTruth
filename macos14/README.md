@@ -7,9 +7,7 @@
 macOS gives you a clean battery percentage. BatteryTruth digs one layer deeper and reads the raw numbers from the Mac battery controller: real charge, real full-charge capacity, real design capacity, real health, and live power flow. No guessing tables. No rounded dashboard magic. Just the numbers your Mac is exposing. ⚡️
 
 Download the latest build:
-[BatteryTruth-macOS.zip](https://github.com/Leonleoi/BatteryTruth/releases/latest/download/BatteryTruth-macOS.zip)
-
-Need macOS 14? Use the dedicated compatibility project in [`macos14/`](macos14/). 🍃
+[BatteryTruth-macOS14.zip](https://github.com/Leonleoi/BatteryTruth/releases/download/v1.0.1-macos14/BatteryTruth-macOS14.zip)
 
 ## Why This Exists 🧠
 
@@ -61,7 +59,7 @@ Health is **not capped at 100%**. A new or recently calibrated battery can repor
 
 ## What It Does Not Do 🚧
 
-BatteryTruth does **not** fake charging control. On macOS 15, there is no public API for this app to directly cut charging.
+BatteryTruth does **not** fake charging control. On macOS 14, there is no public API for this app to directly cut charging.
 
 The charge-limit and thermal-protection settings are monitoring and warning features based on real battery data. They are useful signals, not hidden system-level charging switches. 🛡️
 
@@ -71,7 +69,7 @@ BatteryTruth is designed as a dark glass desktop dashboard: large live numbers, 
 
 ## Requirements 🧰
 
-- macOS 15 or newer
+- macOS 14 or newer
 - Xcode Command Line Tools
 - Swift 6 toolchain
 
@@ -97,7 +95,7 @@ dist/BatteryTruth.app
 The release zip is created at:
 
 ```text
-dist/BatteryTruth-macOS.zip
+dist/BatteryTruth-macOS14.zip
 ```
 
 ## Disclaimer ⚠️
