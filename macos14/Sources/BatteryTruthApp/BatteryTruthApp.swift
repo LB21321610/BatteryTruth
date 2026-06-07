@@ -77,11 +77,12 @@ private struct WindowChromeConfigurator: NSViewRepresentable {
 
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
-        window.isOpaque = false
-        window.backgroundColor = .clear
+        window.isOpaque = true
+        window.backgroundColor = NSColor(red: 0.055, green: 0.058, blue: 0.064, alpha: 1)
         window.styleMask.insert(.fullSizeContentView)
         window.contentView?.wantsLayer = true
-        window.contentView?.layer?.backgroundColor = NSColor.clear.cgColor
+        window.contentView?.layer?.isOpaque = true
+        window.contentView?.layer?.backgroundColor = NSColor(red: 0.055, green: 0.058, blue: 0.064, alpha: 1).cgColor
     }
 }
 

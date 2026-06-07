@@ -25,7 +25,8 @@ struct ContentView: View {
                         ) {
                             monitor.refresh()
                         }
-                        .frame(maxWidth: .infinity, minHeight: max(560, proxy.size.height))
+                        .frame(maxWidth: .infinity, minHeight: max(520, proxy.size.height))
+                        .padding(.horizontal, 18)
                     }
                 }
                 .frame(minWidth: proxy.size.width, minHeight: proxy.size.height)
@@ -53,90 +54,63 @@ private struct DashboardView: View {
 
     private var contentPadding: CGFloat {
         if availableWidth >= 1200 {
-            return 36
+            return 24
         }
         if availableWidth <= 520 {
-            return 16
+            return 12
         }
-        return 24
+        return 18
     }
 
-    private var heroWidth: CGFloat {
-        max(420, availableWidth * 0.58)
+    private var sidebarWidth: CGFloat {
+        min(380, max(310, availableWidth * 0.32))
     }
 
     var body: some View {
-        LazyVStack(spacing: 18) {
-            HeaderView(snapshot: snapshot, refresh: refresh)
+        LazyVStack(spacing: BatteryTruthTheme.Spacing.section) {
+            HeaderView(snapshot: snapshot, monitor: monitor, refresh: refresh)
                 .reveal(appeared, delay: 0.00)
 
             if isWide {
-                HStack(alignment: .top, spacing: 18) {
-                    BatteryHeroView(snapshot: snapshot, monitor: monitor, availableWidth: heroWidth)
-                        .frame(maxWidth: .infinity)
-
-                    VStack(spacing: 18) {
-                        PowerPanel(monitor: monitor)
-                        ProtectionPanel(snapshot: snapshot, monitor: monitor)
-                        HealthRingView(snapshot: snapshot)
-                        CapacityPanel(snapshot: snapshot)
+                HStack(alignment: .top, spacing: BatteryTruthTheme.Spacing.section) {
+                    VStack(spacing: BatteryTruthTheme.Spacing.section) {
+                        BatteryHeroView(snapshot: snapshot, monitor: monitor)
+                        PowerSection(monitor: monitor, availableWidth: availableWidth)
+                        RawMetricsSection(snapshot: snapshot, monitor: monitor, availableWidth: availableWidth)
                     }
-                    .frame(width: min(420, max(340, availableWidth * 0.30)))
+                    .frame(maxWidth: .infinity)
+
+                    VStack(spacing: BatteryTruthTheme.Spacing.section) {
+                        ProtectionSection(snapshot: snapshot, monitor: monitor)
+                        BatteryHealthSection(snapshot: snapshot)
+                        CapacitySection(snapshot: snapshot)
+                    }
+                    .frame(width: sidebarWidth)
                 }
-                .reveal(appeared, delay: 0.08)
+                .reveal(appeared, delay: 0.07)
             } else {
-                BatteryHeroView(snapshot: snapshot, monitor: monitor, availableWidth: availableWidth)
-                    .reveal(appeared, delay: 0.08)
-
-                if availableWidth < 640 {
-                    VStack(spacing: 14) {
-                        PowerPanel(monitor: monitor)
-                        ProtectionPanel(snapshot: snapshot, monitor: monitor)
-                        HealthRingView(snapshot: snapshot)
-                        CapacityPanel(snapshot: snapshot)
-                    }
-                    .reveal(appeared, delay: 0.16)
-                } else {
-                    VStack(spacing: 14) {
-                        PowerPanel(monitor: monitor)
-                        ProtectionPanel(snapshot: snapshot, monitor: monitor)
-
-                        HStack(spacing: 14) {
-                            HealthRingView(snapshot: snapshot)
-                            CapacityPanel(snapshot: snapshot)
-                        }
-                    }
-                    .reveal(appeared, delay: 0.16)
+                VStack(spacing: BatteryTruthTheme.Spacing.section) {
+                    BatteryHeroView(snapshot: snapshot, monitor: monitor)
+                    PowerSection(monitor: monitor, availableWidth: availableWidth)
+                    ProtectionSection(snapshot: snapshot, monitor: monitor)
+                    BatteryHealthSection(snapshot: snapshot)
+                    CapacitySection(snapshot: snapshot)
+                    RawMetricsSection(snapshot: snapshot, monitor: monitor, availableWidth: availableWidth)
                 }
+                .reveal(appeared, delay: 0.07)
             }
 
-            MetricsGrid(snapshot: snapshot, monitor: monitor, availableWidth: availableWidth)
-                .reveal(appeared, delay: 0.24)
+            CalculationSourcesSection(snapshot: snapshot)
+                .reveal(appeared, delay: 0.14)
 
-            AppSettingsPanel(monitor: monitor)
-                .reveal(appeared, delay: 0.28)
+            DashboardSettingsSection(monitor: monitor)
+                .reveal(appeared, delay: 0.18)
 
-            FormulaPanel(snapshot: snapshot)
-                .reveal(appeared, delay: 0.36)
-
-            if snapshot.healthIsAboveDesign {
-                InfoRibbon(
-                    title: "满充容量高于设计容量",
-                    message: "这是新电池或校准状态正常可能出现的真实读数，健康度不做 100% 截断。"
-                )
-            } else if !snapshot.hasRawCharge {
-                InfoRibbon(
-                    title: "真实容量不可用",
-                    message: "当前硬件未返回 raw 容量字段，界面只展示系统百分比参考。"
-                )
-            } else if !snapshot.hasHealth {
-                InfoRibbon(
-                    title: "设计容量不可用",
-                    message: "不同 Mac 机型设计容量不同；当前机器未返回 DesignCapacity，因此不使用机型表猜测健康度。"
-                )
-            }
+            AdvisoryMessages(snapshot: snapshot)
+                .reveal(appeared, delay: 0.22)
         }
         .padding(contentPadding)
+        .frame(maxWidth: 1220)
         .frame(maxWidth: .infinity)
         .onAppear {
             appeared = true
@@ -146,88 +120,53 @@ private struct DashboardView: View {
 
 private struct HeaderView: View {
     let snapshot: BatterySnapshot
+    let monitor: BatteryMonitor
     let refresh: () -> Void
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
-        HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 8) {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text("BatteryTruth")
-                    .font(.system(.title3, design: .rounded, weight: .semibold))
+                    .font(BatteryTruthTheme.Font.title)
                     .foregroundStyle(.primary)
 
-                Text("真实容量 / 满充容量")
-                    .font(.system(.callout, design: .rounded, weight: .medium))
-                    .foregroundStyle(.secondary)
+                HStack(spacing: 8) {
+                    StatusPill(snapshot.dataSource.rawValue, style: .neutral, systemImage: "waveform.path.ecg")
+                    LastRefreshText(monitor: monitor, fallback: snapshot.timestamp)
+                }
             }
 
-            Spacer()
-
-            Button(action: refresh) {
-                Label("刷新", systemImage: "arrow.clockwise")
-                    .labelStyle(.iconOnly)
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 34, height: 34)
-            }
-            .buttonStyle(.plain)
-            .glassCapsule()
-            .help("刷新电池数据")
-        }
-    }
-}
-
-private struct BatteryHeroView: View {
-    let snapshot: BatterySnapshot
-    let monitor: BatteryMonitor
-    let availableWidth: CGFloat
-
-    private var percent: Double {
-        snapshot.trueChargePercent ?? snapshot.systemChargePercent ?? 0
-    }
-
-    private var iconWidth: CGFloat {
-        min(max(availableWidth * 0.42, 250), 540)
-    }
-
-    private var iconHeight: CGFloat {
-        min(max(iconWidth * 0.50, 126), 220)
-    }
-
-    private var percentFontSize: CGFloat {
-        min(max(availableWidth * 0.07, 46), 76)
-    }
-
-    var body: some View {
-        VStack(spacing: 16) {
-            HStack(alignment: .firstTextBaseline, spacing: 6) {
-                Text(BatteryFormatter.compactPercent(snapshot.trueChargePercent ?? snapshot.systemChargePercent))
-                    .font(.system(size: percentFontSize, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .animation(.spring(response: 0.45, dampingFraction: 0.82), value: snapshot.trueChargePercent ?? snapshot.systemChargePercent ?? 0)
-
-                Text("%")
-                    .font(.system(size: 26, weight: .bold, design: .rounded))
-                    .foregroundStyle(.secondary)
-            }
-
-            VisualBatteryIcon(percent: percent, isCharging: snapshot.isCharging)
-                .frame(width: iconWidth, height: iconHeight)
+            Spacer(minLength: 12)
 
             HStack(spacing: 8) {
-                Image(systemName: snapshot.isCharging ? "bolt.fill" : "powerplug")
-                    .symbolRenderingMode(.hierarchical)
-                Text(snapshot.statusText)
-                    .fontWeight(.semibold)
-                LastRefreshText(monitor: monitor, fallback: snapshot.timestamp)
+                SettingsLink {
+                    Label("App 设置", systemImage: "gearshape")
+                        .labelStyle(.iconOnly)
+                        .font(.system(size: 13, weight: .semibold))
+                        .frame(width: 28, height: 28)
+                }
+                .buttonStyle(.plain)
+                .glassCapsule()
+                .help("打开 App 设置")
+
+                ToolbarIconButton(title: "系统电池设置", systemImage: "battery.100percent") {
+                    openSystemBatterySettings()
+                }
+
+                ToolbarIconButton(title: "刷新电池数据", systemImage: "arrow.clockwise", action: refresh)
             }
-            .font(.system(.callout, design: .rounded))
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .glassCapsule()
         }
-        .padding(.vertical, availableWidth >= 980 ? 30 : 18)
-        .frame(maxWidth: .infinity)
-        .glassPanel(cornerRadius: 28)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .glassPanel(cornerRadius: BatteryTruthTheme.Radius.panel)
+    }
+
+    private func openSystemBatterySettings() {
+        guard let url = BatterySettingsURL.systemBatterySettings else {
+            return
+        }
+        openURL(url)
     }
 }
 
@@ -237,222 +176,161 @@ private struct LastRefreshText: View {
 
     var body: some View {
         Text("刷新 \(BatteryFormatter.timestamp(monitor.lastRefresh ?? fallback))")
-            .foregroundStyle(.secondary)
+            .font(BatteryTruthTheme.Font.label)
+            .foregroundStyle(BatteryTruthTheme.ColorToken.textSecondary)
             .monospacedDigit()
+            .lineLimit(1)
     }
 }
 
-private struct VisualBatteryIcon: View {
+private struct BatteryHeroView: View {
+    let snapshot: BatterySnapshot
+    let monitor: BatteryMonitor
+
+    private var percent: Double {
+        snapshot.trueChargePercent ?? snapshot.systemChargePercent ?? 0
+    }
+
+    private var percentText: String {
+        BatteryFormatter.compactPercent(snapshot.trueChargePercent ?? snapshot.systemChargePercent)
+    }
+
+    private var statusStyle: DashboardStatusStyle {
+        if !snapshot.hasRawCharge {
+            return .unavailable
+        }
+        if percent < 20 {
+            return .critical
+        }
+        if percent < 50 {
+            return .warning
+        }
+        return .normal
+    }
+
+    var body: some View {
+        DashboardSection("Live Battery", systemImage: "battery.100percent", elevated: true) {
+            HStack(alignment: .center, spacing: 18) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("真实电量")
+                        .font(BatteryTruthTheme.Font.label)
+                        .foregroundStyle(BatteryTruthTheme.ColorToken.textSecondary)
+
+                    HStack(alignment: .firstTextBaseline, spacing: 5) {
+                        Text(percentText)
+                            .font(.system(size: 70, weight: .semibold, design: .default))
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.62)
+
+                        Text("%")
+                            .font(.system(size: 24, weight: .semibold, design: .default))
+                            .foregroundStyle(BatteryTruthTheme.ColorToken.textSecondary)
+                    }
+
+                    HStack(spacing: 8) {
+                        StatusPill(snapshot.statusText, style: snapshot.isCharging ? .normal : .neutral, systemImage: snapshot.isCharging ? "bolt.fill" : "powerplug")
+                        StatusPill(BatteryFormatter.power(monitor.telemetry?.signedBatteryPowerWatts), style: .neutral, systemImage: "bolt.circle")
+                    }
+
+                    LastRefreshText(monitor: monitor, fallback: snapshot.timestamp)
+                }
+
+                Spacer(minLength: 8)
+
+                PrecisionBatteryGauge(percent: percent, isCharging: snapshot.isCharging, style: statusStyle)
+                    .frame(width: 220, height: 104)
+                    .layoutPriority(1)
+            }
+        }
+    }
+}
+
+private struct PrecisionBatteryGauge: View {
     let percent: Double
     let isCharging: Bool
-    @State private var pulse = false
+    let style: DashboardStatusStyle
 
     private var normalized: Double {
         min(max(percent / 100, 0), 1)
     }
 
-    private var fillColor: Color {
-        switch percent {
-        case ..<20:
-            return Color(red: 1.0, green: 0.34, blue: 0.25)
-        case ..<50:
-            return Color(red: 1.0, green: 0.72, blue: 0.28)
-        default:
-            return Color(red: 0.27, green: 0.93, blue: 0.63)
-        }
-    }
-
     var body: some View {
         GeometryReader { proxy in
-            let capWidth = proxy.size.width * 0.07
-            let bodyWidth = proxy.size.width - capWidth - 8
-            let inset: CGFloat = 10
-            let fillWidth = max(10, (bodyWidth - inset * 2) * normalized)
+            let capWidth = max(9, proxy.size.width * 0.055)
+            let spacing: CGFloat = 7
+            let bodyWidth = proxy.size.width - capWidth - spacing
+            let inset: CGFloat = 8
+            let fillWidth = max(8, (bodyWidth - inset * 2) * normalized)
 
-            HStack(spacing: 8) {
+            HStack(spacing: spacing) {
                 ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
-                        .strokeBorder(.white.opacity(0.45), lineWidth: 2)
-                        .background(
-                            RoundedRectangle(cornerRadius: 28, style: .continuous)
-                                .fill(.black.opacity(0.16))
-                        )
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(Color.black.opacity(0.18))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .stroke(BatteryTruthTheme.ColorToken.border, lineWidth: 1)
+                        }
+                        .overlay(alignment: .top) {
+                            Rectangle()
+                                .fill(BatteryTruthTheme.ColorToken.highlight.opacity(0.85))
+                                .frame(height: 1)
+                        }
 
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    fillColor.opacity(0.92),
-                                    fillColor.opacity(0.58),
-                                    .white.opacity(0.35)
-                                ],
-                                startPoint: .bottomLeading,
-                                endPoint: .topTrailing
-                            )
-                        )
+                    RoundedRectangle(cornerRadius: 9, style: .continuous)
+                        .fill(style.color.opacity(0.82))
+                        .overlay(alignment: .top) {
+                            Rectangle()
+                                .fill(.white.opacity(0.22))
+                                .frame(height: max(1, (proxy.size.height - inset * 2) * 0.30))
+                        }
                         .frame(width: fillWidth, height: proxy.size.height - inset * 2)
                         .padding(inset)
-                        .shadow(color: fillColor.opacity(0.30), radius: 10, y: 4)
-                        .animation(.spring(response: 0.55, dampingFraction: 0.82), value: fillWidth)
-
-                    LinearGradient(
-                        colors: [.white.opacity(0.22), .clear],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    .frame(width: max(10, fillWidth), height: proxy.size.height * 0.42)
-                    .padding(inset)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
 
                     if isCharging {
                         Image(systemName: "bolt.fill")
-                            .font(.system(size: 38, weight: .black))
-                            .foregroundStyle(.white)
-                            .shadow(color: fillColor.opacity(0.75), radius: pulse ? 12 : 6)
+                            .font(.system(size: 28, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.92))
                             .frame(width: bodyWidth, height: proxy.size.height)
-                            .scaleEffect(pulse ? 1.02 : 0.96)
-                            .animation(.spring(response: 0.45, dampingFraction: 0.72), value: pulse)
                     }
                 }
                 .frame(width: bodyWidth)
 
-                Capsule()
-                    .fill(.white.opacity(0.42))
-                    .frame(width: capWidth, height: proxy.size.height * 0.42)
+                RoundedRectangle(cornerRadius: 5, style: .continuous)
+                    .fill(BatteryTruthTheme.ColorToken.border)
+                    .frame(width: capWidth, height: proxy.size.height * 0.36)
             }
-        }
-        .onAppear {
-            pulse = true
         }
         .accessibilityLabel("真实电量 \(BatteryFormatter.percent(percent))")
     }
 }
 
-private struct HealthRingView: View {
-    let snapshot: BatterySnapshot
-    @State private var ringVisible = false
-
-    private var health: Double {
-        snapshot.healthPercent ?? 0
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("真实健康度")
-                .font(.system(.callout, design: .rounded, weight: .semibold))
-                .foregroundStyle(.secondary)
-
-            ZStack {
-                Circle()
-                    .stroke(.white.opacity(0.18), lineWidth: 16)
-
-                Circle()
-                    .trim(from: 0, to: ringVisible ? min(max(health / 100, 0), 1.2) : 0)
-                    .stroke(
-                        AngularGradient(
-                            colors: [.green, .mint, .cyan, .green],
-                            center: .center
-                        ),
-                        style: StrokeStyle(lineWidth: 16, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .animation(.spring(response: 0.8, dampingFraction: 0.78), value: ringVisible)
-                    .animation(.spring(response: 0.55, dampingFraction: 0.82), value: health)
-
-                VStack(spacing: 2) {
-                    Text(BatteryFormatter.compactPercent(snapshot.healthPercent))
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                    Text("%")
-                        .font(.system(.caption, design: .rounded, weight: .bold))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(width: 128, height: 128)
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassPanel(cornerRadius: 22)
-        .onAppear {
-            ringVisible = true
-        }
-    }
-}
-
-private struct PowerPanel: View {
+private struct PowerSection: View {
     let monitor: BatteryMonitor
+    let availableWidth: CGFloat
 
     private var telemetry: BatteryTelemetry? {
         monitor.telemetry
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Label("实时功率", systemImage: "bolt.circle.fill")
-                .font(.system(.callout, design: .rounded, weight: .bold))
-                .foregroundStyle(.primary)
-
-            HStack(spacing: 12) {
-                PowerReadout(
-                    title: "充电功率",
-                    value: BatteryFormatter.power(telemetry?.chargingPowerWatts),
-                    color: .green
-                )
-
-                PowerReadout(
-                    title: "掉电功率",
-                    value: BatteryFormatter.power(telemetry?.dischargingPowerWatts),
-                    color: .orange
-                )
-            }
-
-            HStack(spacing: 12) {
-                PowerReadout(
-                    title: "电池温度",
-                    value: BatteryFormatter.temperature(telemetry?.batteryTemperatureCelsius),
-                    color: .cyan
-                )
-
-                PowerReadout(
-                    title: "虚拟温度",
-                    value: BatteryFormatter.temperature(telemetry?.virtualTemperatureCelsius),
-                    color: .teal
-                )
+        DashboardSection("Power", systemImage: "bolt.circle", accessory: "Live telemetry") {
+            DashboardGrid(availableWidth: availableWidth, minimumColumnWidth: 142) {
+                MetricCard(metric: DashboardMetric(title: "充电功率", value: BatteryFormatter.power(telemetry?.chargingPowerWatts), systemImage: "arrow.down.circle", status: telemetry?.chargingPowerWatts == nil ? .unavailable : .normal))
+                MetricCard(metric: DashboardMetric(title: "掉电功率", value: BatteryFormatter.power(telemetry?.dischargingPowerWatts), systemImage: "arrow.up.circle", status: telemetry?.dischargingPowerWatts == nil ? .unavailable : .warning))
+                MetricCard(metric: DashboardMetric(title: "电池温度", value: BatteryFormatter.temperature(telemetry?.batteryTemperatureCelsius), systemImage: "thermometer.medium", status: telemetry?.batteryTemperatureCelsius == nil ? .unavailable : .neutral))
+                MetricCard(metric: DashboardMetric(title: "虚拟温度", value: BatteryFormatter.temperature(telemetry?.virtualTemperatureCelsius), systemImage: "thermometer.variable", status: telemetry?.virtualTemperatureCelsius == nil ? .unavailable : .neutral))
             }
 
             Text("使用本机电池控制器返回的电压与实时电流计算。缺少真实字段时显示不可用。")
-                .font(.system(.footnote, design: .rounded))
-                .foregroundStyle(.secondary)
+                .font(BatteryTruthTheme.Font.footnote)
+                .foregroundStyle(BatteryTruthTheme.ColorToken.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassPanel(cornerRadius: 22)
     }
 }
 
-private struct PowerReadout: View {
-    let title: String
-    let value: String
-    let color: Color
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(.caption, design: .rounded, weight: .semibold))
-                .foregroundStyle(.secondary)
-
-            Text(value)
-                .font(.system(.title2, design: .rounded, weight: .bold))
-                .monospacedDigit()
-                .foregroundStyle(color)
-                .lineLimit(1)
-                .minimumScaleFactor(0.72)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-private struct ProtectionPanel: View {
+private struct ProtectionSection: View {
     let snapshot: BatterySnapshot
     let monitor: BatteryMonitor
     @AppStorage("chargeLimitEnabled") private var chargeLimitEnabled = true
@@ -479,155 +357,171 @@ private struct ProtectionPanel: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("充电保护", systemImage: "shield.lefthalf.filled")
-                .font(.system(.callout, design: .rounded, weight: .bold))
-
-            ProtectionLine(
+        DashboardSection("Protection", systemImage: "shield.lefthalf.filled", accessory: monitor.protectionStatusText) {
+            MetricRow(
                 title: "充电上限",
                 value: chargeLimitEnabled ? "\(Int(chargeLimitPercent))%" : "关闭",
-                active: chargeLimitReached,
-                activeText: "已达到上限"
+                subtitle: chargeLimitReached ? "已达到上限" : "监测中",
+                status: chargeLimitReached ? .warning : .normal
             )
 
-            ProtectionLine(
+            DashboardDivider()
+
+            MetricRow(
                 title: "热保护",
                 value: thermalProtectionEnabled ? BatteryFormatter.temperature(thermalLimitCelsius) : "关闭",
-                active: thermalLimitReached,
-                activeText: "温度过高"
+                subtitle: thermalLimitReached ? "温度过高" : "监测中",
+                status: thermalLimitReached ? .warning : .normal
             )
 
+            HStack(spacing: 8) {
+                StatusPill(monitor.chargeLimitAlertActive ? "充电上限已触发" : "充电上限未触发", style: monitor.chargeLimitAlertActive ? .warning : .normal)
+                StatusPill(monitor.thermalLimitAlertActive ? "热保护已触发" : "热保护未触发", style: monitor.thermalLimitAlertActive ? .warning : .normal)
+            }
+            .lineLimit(1)
+
             Text("基于真实电量和温度判断保护状态。当前 macOS 14 专版没有本 App 可直接调用的公开切断充电接口；macOS Tahoe 26.4+ 的系统级 Charge Limit 需在系统设置中启用。")
-                .font(.system(.footnote, design: .rounded))
-                .foregroundStyle(.secondary)
+                .font(BatteryTruthTheme.Font.footnote)
+                .foregroundStyle(BatteryTruthTheme.ColorToken.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassPanel(cornerRadius: 22)
     }
 }
 
-private struct ProtectionLine: View {
-    let title: String
-    let value: String
-    let active: Bool
-    let activeText: String
+private struct BatteryHealthSection: View {
+    let snapshot: BatterySnapshot
+    @State private var ringVisible = false
+
+    private var health: Double {
+        snapshot.healthPercent ?? 0
+    }
+
+    private var status: DashboardStatusStyle {
+        guard snapshot.healthPercent != nil else {
+            return .unavailable
+        }
+        if snapshot.healthIsAboveDesign || health >= 80 {
+            return .normal
+        }
+        if health >= 60 {
+            return .warning
+        }
+        return .critical
+    }
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.system(.caption, design: .rounded, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Text(active ? activeText : "监测中")
-                    .font(.system(.footnote, design: .rounded))
-                    .foregroundStyle(active ? .orange : .secondary)
+        DashboardSection("Battery Health", systemImage: "heart.text.square", accessory: snapshot.healthIsAboveDesign ? "Above design" : nil) {
+            HStack(spacing: 14) {
+                ZStack {
+                    Circle()
+                        .stroke(BatteryTruthTheme.ColorToken.hairline, lineWidth: 12)
+
+                    Circle()
+                        .trim(from: 0, to: ringVisible ? min(max(health / 100, 0), 1.2) : 0)
+                        .stroke(status.color, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.easeOut(duration: 0.22), value: ringVisible)
+
+                    VStack(spacing: 0) {
+                        Text(BatteryFormatter.compactPercent(snapshot.healthPercent))
+                            .font(.system(size: 27, weight: .semibold, design: .default))
+                            .monospacedDigit()
+                        Text("%")
+                            .font(BatteryTruthTheme.Font.label)
+                            .foregroundStyle(BatteryTruthTheme.ColorToken.textSecondary)
+                    }
+                }
+                .frame(width: 112, height: 112)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    StatusPill(snapshot.healthPercent == nil ? "不可用" : "真实健康度", style: status)
+                    MetricRow(title: "满充容量", value: BatteryFormatter.capacity(snapshot.rawMaxCapacity))
+                    MetricRow(title: "设计容量", value: BatteryFormatter.capacity(snapshot.designCapacity), status: snapshot.designCapacity == nil ? .unavailable : .neutral)
+                }
             }
-            Spacer()
-            Text(value)
-                .font(.system(.title3, design: .rounded, weight: .bold))
-                .monospacedDigit()
+        }
+        .onAppear {
+            ringVisible = true
         }
     }
 }
 
-private struct CapacityPanel: View {
+private struct CapacitySection: View {
     let snapshot: BatterySnapshot
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 13) {
-            MetricLine(title: "当前容量", value: BatteryFormatter.capacity(snapshot.rawCurrentCapacity))
-            MetricLine(title: "满充容量", value: BatteryFormatter.capacity(snapshot.rawMaxCapacity))
-            MetricLine(title: "设计容量", value: BatteryFormatter.capacity(snapshot.designCapacity))
-            MetricLine(title: "系统参考", value: BatteryFormatter.percent(snapshot.systemChargePercent))
+        DashboardSection("Capacity", systemImage: "rectangle.stack", accessory: "mAh") {
+            MetricRow(title: "当前容量", value: BatteryFormatter.capacity(snapshot.rawCurrentCapacity), status: snapshot.rawCurrentCapacity == nil ? .unavailable : .neutral)
+            DashboardDivider()
+            MetricRow(title: "满充容量", value: BatteryFormatter.capacity(snapshot.rawMaxCapacity), status: snapshot.rawMaxCapacity == nil ? .unavailable : .neutral)
+            DashboardDivider()
+            MetricRow(title: "设计容量", value: BatteryFormatter.capacity(snapshot.designCapacity), status: snapshot.designCapacity == nil ? .unavailable : .neutral)
+            DashboardDivider()
+            MetricRow(title: "系统参考", value: BatteryFormatter.percent(snapshot.systemChargePercent), status: snapshot.systemChargePercent == nil ? .unavailable : .neutral)
         }
-        .padding(18)
-        .frame(maxWidth: .infinity, minHeight: 164, alignment: .leading)
-        .glassPanel(cornerRadius: 22)
     }
 }
 
-private struct MetricsGrid: View {
+private struct RawMetricsSection: View {
     let snapshot: BatterySnapshot
     let monitor: BatteryMonitor
     let availableWidth: CGFloat
-
-    private var columns: [GridItem] {
-        let minimum = availableWidth >= 980 ? 220.0 : 150.0
-        return [GridItem(.adaptive(minimum: minimum), spacing: 12)]
-    }
-
-    var body: some View {
-        LazyVGrid(columns: columns, spacing: 12) {
-            SmallMetric(title: "循环次数", value: snapshot.cycleCount.map(String.init) ?? "--")
-            SmallMetric(title: "设计循环", value: snapshot.designCycleCount.map(String.init) ?? "--")
-            SmallMetric(title: "循环损耗", value: BatteryFormatter.percent(snapshot.cycleUsagePercent))
-            SmallMetric(title: "适配器", value: snapshot.adapterWatts.map { "\($0) W" } ?? "--")
-            LiveTelemetryMetrics(monitor: monitor)
-            SmallMetric(title: "原始读数", value: snapshot.hasRawCharge ? "可用" : "不可用")
-            SmallMetric(title: "设计容量", value: snapshot.designCapacity == nil ? "不可用" : "本机读取")
-        }
-    }
-}
-
-private struct LiveTelemetryMetrics: View {
-    let monitor: BatteryMonitor
 
     private var telemetry: BatteryTelemetry? {
         monitor.telemetry
     }
 
     var body: some View {
-        SmallMetric(title: "电压", value: telemetry?.voltageMillivolts.map { "\($0) mV" } ?? "--")
-        SmallMetric(title: "电流", value: telemetry?.amperageMilliamps.map { "\($0) mA" } ?? "--")
-        SmallMetric(title: "充电功率", value: BatteryFormatter.power(telemetry?.chargingPowerWatts))
-        SmallMetric(title: "掉电功率", value: BatteryFormatter.power(telemetry?.dischargingPowerWatts))
-        SmallMetric(title: "电池温度", value: BatteryFormatter.temperature(telemetry?.batteryTemperatureCelsius))
-        SmallMetric(title: "虚拟温度", value: BatteryFormatter.temperature(telemetry?.virtualTemperatureCelsius))
+        DashboardSection("Raw Metrics", systemImage: "tablecells", accessory: "Controller fields") {
+            DashboardGrid(availableWidth: availableWidth) {
+                MetricCard(metric: DashboardMetric(title: "循环次数", value: snapshot.cycleCount.map(String.init) ?? "--", systemImage: "repeat", status: snapshot.cycleCount == nil ? .unavailable : .neutral))
+                MetricCard(metric: DashboardMetric(title: "设计循环", value: snapshot.designCycleCount.map(String.init) ?? "--", systemImage: "repeat.circle", status: snapshot.designCycleCount == nil ? .unavailable : .neutral))
+                MetricCard(metric: DashboardMetric(title: "循环损耗", value: BatteryFormatter.percent(snapshot.cycleUsagePercent), systemImage: "chart.line.downtrend.xyaxis", status: snapshot.cycleUsagePercent == nil ? .unavailable : .neutral))
+                MetricCard(metric: DashboardMetric(title: "适配器", value: snapshot.adapterWatts.map { "\($0) W" } ?? "--", systemImage: "powerplug", status: snapshot.adapterWatts == nil ? .unavailable : .neutral))
+                MetricCard(metric: DashboardMetric(title: "电压", value: telemetry?.voltageMillivolts.map { "\($0) mV" } ?? "--", systemImage: "bolt.horizontal", status: telemetry?.voltageMillivolts == nil ? .unavailable : .neutral))
+                MetricCard(metric: DashboardMetric(title: "电流", value: telemetry?.amperageMilliamps.map { "\($0) mA" } ?? "--", systemImage: "waveform.path", status: telemetry?.amperageMilliamps == nil ? .unavailable : .neutral))
+                MetricCard(metric: DashboardMetric(title: "原始读数", value: snapshot.hasRawCharge ? "可用" : "不可用", systemImage: "checklist.checked", status: snapshot.hasRawCharge ? .normal : .unavailable))
+                MetricCard(metric: DashboardMetric(title: "设计容量", value: snapshot.designCapacity == nil ? "不可用" : "本机读取", systemImage: "internaldrive", status: snapshot.designCapacity == nil ? .unavailable : .normal))
+            }
+        }
     }
 }
 
-private struct FormulaPanel: View {
+private struct CalculationSourcesSection: View {
     let snapshot: BatterySnapshot
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Label("计算来源", systemImage: "function")
-                    .font(.system(.callout, design: .rounded, weight: .bold))
-                Spacer()
-                Text(snapshot.dataSource.rawValue)
-                    .font(.system(.caption, design: .rounded, weight: .semibold))
-                    .foregroundStyle(.secondary)
-            }
+        DashboardSection("Calculation Sources", systemImage: "function", accessory: snapshot.dataSource.rawValue) {
+            MetricRow(
+                title: "真实电量",
+                value: BatteryFormatter.percent(snapshot.trueChargePercent),
+                subtitle: "AppleRawCurrentCapacity / AppleRawMaxCapacity",
+                status: snapshot.trueChargePercent == nil ? .unavailable : .neutral
+            )
+            DashboardDivider()
+            MetricRow(
+                title: "真实健康度",
+                value: BatteryFormatter.percent(snapshot.healthPercent),
+                subtitle: "AppleRawMaxCapacity / DesignCapacity",
+                status: snapshot.healthPercent == nil ? .unavailable : .neutral
+            )
+            DashboardDivider()
+            MetricRow(
+                title: "实时功率",
+                value: BatteryFormatter.power(snapshot.signedBatteryPowerWatts),
+                subtitle: "Voltage(mV) × InstantAmperage(mA) / 1,000,000",
+                status: snapshot.signedBatteryPowerWatts == nil ? .unavailable : .neutral
+            )
 
-            VStack(alignment: .leading, spacing: 10) {
-                FormulaLine(
-                    title: "真实电量",
-                    formula: "AppleRawCurrentCapacity / AppleRawMaxCapacity",
-                    result: BatteryFormatter.percent(snapshot.trueChargePercent)
-                )
-                FormulaLine(
-                    title: "真实健康度",
-                    formula: "AppleRawMaxCapacity / DesignCapacity",
-                    result: BatteryFormatter.percent(snapshot.healthPercent)
-                )
-                FormulaLine(
-                    title: "实时功率",
-                    formula: "Voltage(mV) × InstantAmperage(mA) / 1,000,000",
-                    result: BatteryFormatter.power(snapshot.signedBatteryPowerWatts)
-                )
-                Text("DesignCapacity 来自当前 Mac 的电池控制器；不同机型不会共用固定设计容量。")
-                    .font(.system(.footnote, design: .rounded))
-                    .foregroundStyle(.secondary)
-            }
+            Text("DesignCapacity 来自当前 Mac 的电池控制器；不同机型不会共用固定设计容量。")
+                .font(BatteryTruthTheme.Font.footnote)
+                .foregroundStyle(BatteryTruthTheme.ColorToken.textTertiary)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(18)
-        .glassPanel(cornerRadius: 22)
     }
 }
 
-private struct AppSettingsPanel: View {
+private struct DashboardSettingsSection: View {
     let monitor: BatteryMonitor
     @AppStorage("menuBarDisplayStyle") private var menuBarDisplayStyle = MenuBarDisplayStyle.percent.rawValue
     @AppStorage("chargeLimitEnabled") private var chargeLimitEnabled = true
@@ -637,107 +531,99 @@ private struct AppSettingsPanel: View {
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                Label("设置选项", systemImage: "slider.horizontal.3")
-                    .font(.system(.callout, design: .rounded, weight: .bold))
-                Spacer()
+        DashboardSection("Settings", systemImage: "slider.horizontal.3", accessory: "Menu Bar / Protection / Diagnostics") {
+            VStack(alignment: .leading, spacing: 14) {
+                SettingsGroup(title: "Menu Bar", systemImage: "menubar.rectangle") {
+                    Picker("菜单栏显示", selection: $menuBarDisplayStyle) {
+                        ForEach(MenuBarDisplayStyle.allCases) { style in
+                            Text(style.title).tag(style.rawValue)
+                        }
+                    }
+                    .labelsHidden()
+                    .pickerStyle(.segmented)
+                }
 
-                HStack(spacing: 8) {
-                    SettingsLink {
-                        Text("App 设置")
+                SettingsGroup(title: "Battery Protection", systemImage: "shield") {
+                    ToggleRow(
+                        title: "充电上限监测",
+                        subtitle: "达到设定电量后在 App 内提示，不伪造系统级断电控制。",
+                        isOn: $chargeLimitEnabled
+                    )
+
+                    SettingSlider(
+                        title: "充电上限",
+                        valueText: "\(Int(chargeLimitPercent))%",
+                        value: $chargeLimitPercent,
+                        range: 50...100,
+                        step: 1
+                    )
+                    .disabled(!chargeLimitEnabled)
+                    .opacity(chargeLimitEnabled ? 1 : 0.46)
+
+                    ToggleRow(
+                        title: "热保护监测",
+                        subtitle: "基于电池控制器返回的真实温度字段判断。",
+                        isOn: $thermalProtectionEnabled
+                    )
+
+                    SettingSlider(
+                        title: "热保护阈值",
+                        valueText: BatteryFormatter.temperature(thermalLimitCelsius),
+                        value: $thermalLimitCelsius,
+                        range: 30...55,
+                        step: 1
+                    )
+                    .disabled(!thermalProtectionEnabled)
+                    .opacity(thermalProtectionEnabled ? 1 : 0.46)
+                }
+
+                SettingsGroup(title: "Notifications", systemImage: "bell.badge") {
+                    MetricRow(title: "提醒权限", value: monitor.notificationStatusText)
+                    MetricRow(title: "保护状态", value: monitor.protectionStatusText)
+                    Button("测试本地提醒") {
+                        monitor.postTestNotification()
                     }
                     .buttonStyle(.plain)
-                    .font(.system(.footnote, design: .rounded, weight: .semibold))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
+                    .font(.system(.footnote, design: .default, weight: .semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
                     .glassCapsule()
+                }
 
-                    Button("系统电池设置") {
-                        openSystemBatterySettings()
+                SettingsGroup(title: "System Integration", systemImage: "gearshape.2") {
+                    HStack(spacing: 8) {
+                        SettingsLink {
+                            Text("App 设置")
+                        }
+                        .buttonStyle(.plain)
+                        .font(.system(.footnote, design: .default, weight: .semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .glassCapsule()
+
+                        Button("系统电池设置") {
+                            openSystemBatterySettings()
+                        }
+                        .buttonStyle(.plain)
+                        .font(.system(.footnote, design: .default, weight: .semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .glassCapsule()
+                    }
+                }
+
+                SettingsGroup(title: "Diagnostics", systemImage: "doc.on.clipboard") {
+                    Button("复制诊断信息") {
+                        monitor.copyDiagnostics()
                     }
                     .buttonStyle(.plain)
-                    .font(.system(.footnote, design: .rounded, weight: .semibold))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 7)
+                    .font(.system(.footnote, design: .default, weight: .semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
                     .glassCapsule()
                 }
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("菜单栏显示")
-                    .font(.system(.caption, design: .rounded, weight: .semibold))
-                    .foregroundStyle(.secondary)
-
-                Picker("菜单栏显示", selection: $menuBarDisplayStyle) {
-                    ForEach(MenuBarDisplayStyle.allCases) { style in
-                        Text(style.title).tag(style.rawValue)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.segmented)
-            }
-
-            Divider()
-                .overlay(.white.opacity(0.16))
-
-            ToggleRow(
-                title: "充电上限监测",
-                subtitle: "达到设定电量后在 App 内提示，不伪造系统级断电控制。",
-                isOn: $chargeLimitEnabled
-            )
-
-            SettingSlider(
-                title: "充电上限",
-                valueText: "\(Int(chargeLimitPercent))%",
-                value: $chargeLimitPercent,
-                range: 50...100,
-                step: 1
-            )
-            .disabled(!chargeLimitEnabled)
-            .opacity(chargeLimitEnabled ? 1 : 0.45)
-
-            ToggleRow(
-                title: "热保护监测",
-                subtitle: "基于电池控制器返回的真实温度字段判断。",
-                isOn: $thermalProtectionEnabled
-            )
-
-            SettingSlider(
-                title: "热保护阈值",
-                valueText: BatteryFormatter.temperature(thermalLimitCelsius),
-                value: $thermalLimitCelsius,
-                range: 30...55,
-                step: 1
-            )
-            .disabled(!thermalProtectionEnabled)
-            .opacity(thermalProtectionEnabled ? 1 : 0.45)
-
-            Divider()
-                .overlay(.white.opacity(0.16))
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text("真实监测状态")
-                    .font(.system(.caption, design: .rounded, weight: .semibold))
-                    .foregroundStyle(.secondary)
-
-                SettingStatusLine(title: "提醒权限", value: monitor.notificationStatusText)
-                SettingStatusLine(title: "保护状态", value: monitor.protectionStatusText)
-                SettingStatusLine(title: "充电上限", value: monitor.chargeLimitAlertActive ? "已触发" : "未触发")
-                SettingStatusLine(title: "热保护", value: monitor.thermalLimitAlertActive ? "已触发" : "未触发")
-
-                Button("测试本地提醒") {
-                    monitor.postTestNotification()
-                }
-                .buttonStyle(.plain)
-                .font(.system(.footnote, design: .rounded, weight: .semibold))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .glassCapsule()
             }
         }
-        .padding(18)
-        .glassPanel(cornerRadius: 22)
     }
 
     private func openSystemBatterySettings() {
@@ -748,19 +634,31 @@ private struct AppSettingsPanel: View {
     }
 }
 
-private struct SettingStatusLine: View {
+private struct SettingsGroup<Content: View>: View {
     let title: String
-    let value: String
+    let systemImage: String
+    let content: Content
+
+    init(title: String, systemImage: String, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.systemImage = systemImage
+        self.content = content()
+    }
 
     var body: some View {
-        HStack {
-            Text(title)
-                .font(.system(.footnote, design: .rounded))
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-                .font(.system(.footnote, design: .rounded, weight: .semibold))
-                .monospacedDigit()
+        VStack(alignment: .leading, spacing: 10) {
+            SectionHeader(title: title, systemImage: systemImage, accessory: nil)
+            content
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: BatteryTruthTheme.Radius.card, style: .continuous)
+                .fill(Color.white.opacity(0.035))
+                .overlay {
+                    RoundedRectangle(cornerRadius: BatteryTruthTheme.Radius.card, style: .continuous)
+                        .stroke(BatteryTruthTheme.ColorToken.hairline, lineWidth: 0.7)
+                }
         }
     }
 }
@@ -774,10 +672,11 @@ private struct ToggleRow: View {
         Toggle(isOn: $isOn) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(.system(.callout, design: .rounded, weight: .semibold))
+                    .font(BatteryTruthTheme.Font.body.weight(.medium))
                 Text(subtitle)
-                    .font(.system(.footnote, design: .rounded))
-                    .foregroundStyle(.secondary)
+                    .font(BatteryTruthTheme.Font.footnote)
+                    .foregroundStyle(BatteryTruthTheme.ColorToken.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .toggleStyle(.switch)
@@ -792,104 +691,75 @@ private struct SettingSlider: View {
     let step: Double
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 7) {
             HStack {
                 Text(title)
-                    .font(.system(.caption, design: .rounded, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .font(BatteryTruthTheme.Font.label)
+                    .foregroundStyle(BatteryTruthTheme.ColorToken.textSecondary)
                 Spacer()
                 Text(valueText)
-                    .font(.system(.callout, design: .rounded, weight: .bold))
+                    .font(BatteryTruthTheme.Font.mono)
                     .monospacedDigit()
             }
 
             Slider(value: $value, in: range, step: step)
-                .tint(.mint)
+                .tint(BatteryTruthTheme.ColorToken.accent)
         }
     }
 }
 
-private struct FormulaLine: View {
-    let title: String
-    let formula: String
-    let result: String
+private struct AdvisoryMessages: View {
+    let snapshot: BatterySnapshot
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(.footnote, design: .rounded, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                Text(formula)
-                    .font(.system(.callout, design: .monospaced, weight: .medium))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+        VStack(spacing: BatteryTruthTheme.Spacing.item) {
+            if snapshot.healthIsAboveDesign {
+                InfoRibbon(
+                    title: "满充容量高于设计容量",
+                    message: "这是新电池或校准状态正常可能出现的真实读数，健康度不做 100% 截断。",
+                    style: .normal
+                )
+            } else if !snapshot.hasRawCharge {
+                InfoRibbon(
+                    title: "真实容量不可用",
+                    message: "当前硬件未返回 raw 容量字段，界面只展示系统百分比参考。",
+                    style: .unavailable
+                )
+            } else if !snapshot.hasHealth {
+                InfoRibbon(
+                    title: "设计容量不可用",
+                    message: "不同 Mac 机型设计容量不同；当前机器未返回 DesignCapacity，因此不使用机型表猜测健康度。",
+                    style: .unavailable
+                )
             }
-
-            Spacer()
-
-            Text(result)
-                .font(.system(.title3, design: .rounded, weight: .bold))
-                .monospacedDigit()
         }
-    }
-}
-
-private struct MetricLine: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        HStack {
-            Text(title)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-                .fontWeight(.semibold)
-                .monospacedDigit()
-        }
-        .font(.system(.callout, design: .rounded))
-    }
-}
-
-private struct SmallMetric: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.system(.caption, design: .rounded, weight: .semibold))
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.system(.title3, design: .rounded, weight: .bold))
-                .monospacedDigit()
-        }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .glassPanel(cornerRadius: 18)
     }
 }
 
 private struct InfoRibbon: View {
     let title: String
     let message: String
+    let style: DashboardStatusStyle
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "info.circle.fill")
-                .foregroundStyle(.cyan)
-            VStack(alignment: .leading, spacing: 4) {
+            Image(systemName: style.symbolName)
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(style.color)
+                .padding(.top, 1)
+
+            VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .fontWeight(.semibold)
+                    .font(.system(.footnote, design: .default, weight: .semibold))
                 Text(message)
-                    .foregroundStyle(.secondary)
+                    .font(BatteryTruthTheme.Font.footnote)
+                    .foregroundStyle(BatteryTruthTheme.ColorToken.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .font(.system(.footnote, design: .rounded))
-        .padding(14)
+        .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassPanel(cornerRadius: 16)
+        .glassPanel(cornerRadius: BatteryTruthTheme.Radius.card)
     }
 }
 
@@ -899,27 +769,31 @@ private struct EmptyBatteryView: View {
     let refresh: () -> Void
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 14) {
             Image(systemName: "battery.0percent")
-                .font(.system(size: 60, weight: .light))
+                .font(.system(size: 44, weight: .regular))
                 .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(BatteryTruthTheme.ColorToken.unavailable)
 
-            Text(message)
-                .font(.system(.title3, design: .rounded, weight: .semibold))
+            VStack(spacing: 5) {
+                Text(message)
+                    .font(BatteryTruthTheme.Font.title)
 
-            Text("这台设备没有返回 AppleSmartBattery 数据，或当前系统拒绝读取该电池服务。")
-                .font(.system(.callout, design: .rounded))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+                Text("这台设备没有返回 AppleSmartBattery 数据，或当前系统拒绝读取该电池服务。")
+                    .font(BatteryTruthTheme.Font.body)
+                    .foregroundStyle(BatteryTruthTheme.ColorToken.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
             EmptyLastRefreshText(monitor: monitor)
 
             Button("重新读取", action: refresh)
                 .buttonStyle(.borderedProminent)
         }
-        .padding(28)
+        .padding(24)
         .frame(width: 360)
-        .glassPanel(cornerRadius: 26)
+        .glassPanel(cornerRadius: BatteryTruthTheme.Radius.panel, elevated: true)
     }
 }
 
@@ -929,8 +803,8 @@ private struct EmptyLastRefreshText: View {
     var body: some View {
         if let lastRefresh = monitor.lastRefresh {
             Text("上次刷新 \(BatteryFormatter.timestamp(lastRefresh))")
-                .font(.system(.footnote, design: .rounded))
-                .foregroundStyle(.secondary)
+                .font(BatteryTruthTheme.Font.footnote)
+                .foregroundStyle(BatteryTruthTheme.ColorToken.textSecondary)
                 .monospacedDigit()
         }
     }
@@ -943,9 +817,8 @@ private struct RevealModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
             .opacity(isVisible ? 1 : 0)
-            .offset(y: isVisible ? 0 : 24)
-            .scaleEffect(isVisible ? 1 : 0.985)
-            .animation(.spring(response: 0.7, dampingFraction: 0.82).delay(delay), value: isVisible)
+            .offset(y: isVisible ? 0 : 10)
+            .animation(.easeOut(duration: 0.24).delay(delay), value: isVisible)
     }
 }
 
