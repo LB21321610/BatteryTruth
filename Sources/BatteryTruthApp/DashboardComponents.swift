@@ -28,7 +28,7 @@ struct DashboardSection<Content: View>: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassPanel(cornerRadius: BatteryTruthTheme.Radius.panel, elevated: elevated)
+        .liquidGlassSurface(elevated ? .elevated : .panel, cornerRadius: BatteryTruthTheme.Radius.panel)
     }
 }
 
@@ -126,19 +126,7 @@ struct MetricCard: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, minHeight: 86, alignment: .topLeading)
-        .background {
-            RoundedRectangle(cornerRadius: BatteryTruthTheme.Radius.card, style: .continuous)
-                .fill(BatteryTruthTheme.ColorToken.card)
-                .overlay(alignment: .top) {
-                    Rectangle()
-                        .fill(BatteryTruthTheme.ColorToken.highlight.opacity(0.70))
-                        .frame(height: 1)
-                }
-                .overlay {
-                    RoundedRectangle(cornerRadius: BatteryTruthTheme.Radius.card, style: .continuous)
-                        .stroke(BatteryTruthTheme.ColorToken.hairline, lineWidth: 0.7)
-                }
-        }
+        .liquidGlassSurface(.card, cornerRadius: BatteryTruthTheme.Radius.card)
     }
 }
 
@@ -215,14 +203,7 @@ struct StatusPill: View {
         .foregroundStyle(style.color)
         .padding(.horizontal, 9)
         .padding(.vertical, 5)
-        .background {
-            Capsule()
-                .fill(style.color.opacity(0.105))
-                .overlay {
-                    Capsule()
-                        .stroke(style.color.opacity(0.28), lineWidth: 0.7)
-                }
-        }
+        .liquidGlassSurface(.pill(style), cornerRadius: BatteryTruthTheme.Radius.pill)
     }
 }
 
@@ -246,8 +227,7 @@ struct ToolbarIconButton: View {
                 .font(.system(size: 13, weight: .semibold))
                 .frame(width: 28, height: 28)
         }
-        .buttonStyle(.plain)
-        .glassCapsule()
+        .buttonStyle(LiquidGlassButtonStyle())
         .help(title)
     }
 }

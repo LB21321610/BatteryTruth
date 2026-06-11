@@ -4,7 +4,7 @@ set -euo pipefail
 MODE="${1:-run}"
 APP_NAME="BatteryTruth"
 BUNDLE_ID="com.leonlei.BatteryTruth"
-MIN_SYSTEM_VERSION="15.0"
+MIN_SYSTEM_VERSION="14.0"
 CONFIGURATION="${CONFIGURATION:-release}"
 
 if [[ "$MODE" == "--debug" || "$MODE" == "debug" ]]; then

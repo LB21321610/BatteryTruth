@@ -72,11 +72,10 @@ struct SettingsView: View {
                                 NSWorkspace.shared.open(url)
                             }
                         }
-                        .buttonStyle(.plain)
                         .font(.system(.footnote, design: .default, weight: .semibold))
                         .padding(.horizontal, 10)
                         .padding(.vertical, 6)
-                        .glassCapsule()
+                        .buttonStyle(LiquidGlassButtonStyle())
 
                         Text("本 App 不伪造充电控制。macOS Tahoe 26.4+ 且 Apple silicon 的系统级 Charge Limit 需在系统设置中启用。")
                             .font(BatteryTruthTheme.Font.footnote)
@@ -104,7 +103,6 @@ struct SettingsView: View {
             .scrollIndicators(.hidden)
         }
         .frame(width: 560, height: 560)
-        .preferredColorScheme(.dark)
     }
 }
 

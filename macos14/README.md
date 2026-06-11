@@ -7,7 +7,7 @@
 macOS gives you a clean battery percentage. BatteryTruth digs one layer deeper and reads the raw numbers from the Mac battery controller: real charge, real full-charge capacity, real design capacity, real health, and live power flow. No guessing tables. No rounded dashboard magic. Just the numbers your Mac is exposing. ⚡️
 
 Download the latest build:
-[BatteryTruth-macOS14.zip](https://github.com/Leonleoi/BatteryTruth/releases/download/v1.0.2-macos14/BatteryTruth-macOS14.zip)
+[BatteryTruth-macOS14.zip](https://github.com/LB21321610/BatteryTruth/releases/download/v1.0.2-macos14/BatteryTruth-macOS14.zip)
 
 ## Why This Exists 🧠
 
@@ -29,7 +29,7 @@ Your menu bar might say `95%`, but the battery controller may be reporting more 
 - ⚡️ **Live power flow**: charging watts and discharging watts from real voltage/current fields
 - 🌡️ **Thermal readings**: battery temperature and virtual temperature when available
 - 🖥️ **Mac-aware behavior**: MacBooks show internal battery data; desktop Macs show a clear no-battery state
-- 🪟 **Native SwiftUI app**: glass-style dashboard, full-window layout, smooth scrolling, and menu bar display
+- 🪟 **Native SwiftUI app**: Apple.com-style light product-page interface, full-window layout, smooth scrolling, and menu bar display
 - 🎛️ **Built-in settings**: menu bar style, charge-limit monitoring, thermal-limit monitoring, and local alert testing
 - 🔔 **Real local alerts**: sends macOS notifications when real charge or temperature crosses your thresholds
 - 🎨 **App icon included**: based on MIT-licensed Bootstrap Icons `battery-charging`
@@ -66,7 +66,7 @@ The charge-limit and thermal-protection settings are monitoring and warning feat
 
 ## Screenshot / UI Mood 🌌
 
-BatteryTruth is designed as a dark glass desktop dashboard: large live numbers, a visual battery icon, health ring, raw capacity panel, power panel, and settings right inside the main UI.
+BatteryTruth is designed as an Apple.com-style light product page: large live numbers, generous whitespace, soft rounded modules, a visual battery icon, health ring, raw capacity panel, power panel, and settings right inside the main UI.
 
 ## Requirements 🧰
 

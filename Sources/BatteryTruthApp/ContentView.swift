@@ -33,8 +33,8 @@ struct ContentView: View {
                 .background(Color.clear)
                 .scrollIndicators(.hidden)
                 .scrollBounceBehavior(.basedOnSize)
-                .onScrollPhaseChange { _, newPhase in
-                    monitor.setScrolling(newPhase.isScrolling)
+                .batteryScrollPhaseTracking { isScrolling in
+                    monitor.setScrolling(isScrolling)
                 }
             }
         }
@@ -54,16 +54,16 @@ private struct DashboardView: View {
 
     private var contentPadding: CGFloat {
         if availableWidth >= 1200 {
-            return 24
+            return 30
         }
         if availableWidth <= 520 {
-            return 12
+            return 16
         }
-        return 18
+        return 24
     }
 
     private var sidebarWidth: CGFloat {
-        min(380, max(310, availableWidth * 0.32))
+        min(400, max(320, availableWidth * 0.34))
     }
 
     var body: some View {
@@ -110,7 +110,7 @@ private struct DashboardView: View {
                 .reveal(appeared, delay: 0.22)
         }
         .padding(contentPadding)
-        .frame(maxWidth: 1220)
+        .frame(maxWidth: 1280)
         .frame(maxWidth: .infinity)
         .onAppear {
             appeared = true
@@ -126,39 +126,42 @@ private struct HeaderView: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("BatteryTruth")
                     .font(BatteryTruthTheme.Font.title)
                     .foregroundStyle(.primary)
 
-                HStack(spacing: 8) {
-                    StatusPill(snapshot.dataSource.rawValue, style: .neutral, systemImage: "waveform.path.ecg")
-                    LastRefreshText(monitor: monitor, fallback: snapshot.timestamp)
+                LiquidGlassSurfaceGroup(spacing: 8) {
+                    HStack(spacing: 8) {
+                        StatusPill(snapshot.dataSource.rawValue, style: .neutral, systemImage: "waveform.path.ecg")
+                        LastRefreshText(monitor: monitor, fallback: snapshot.timestamp)
+                    }
                 }
             }
 
             Spacer(minLength: 12)
 
-            HStack(spacing: 8) {
-                SettingsLink {
-                    Label("App 设置", systemImage: "gearshape")
-                        .labelStyle(.iconOnly)
-                        .font(.system(size: 13, weight: .semibold))
-                        .frame(width: 28, height: 28)
-                }
-                .buttonStyle(.plain)
-                .glassCapsule()
-                .help("打开 App 设置")
+            LiquidGlassSurfaceGroup(spacing: 8) {
+                HStack(spacing: 8) {
+                    SettingsLink {
+                        Label("App 设置", systemImage: "gearshape")
+                            .labelStyle(.iconOnly)
+                            .font(.system(size: 13, weight: .semibold))
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(LiquidGlassButtonStyle())
+                    .help("打开 App 设置")
 
-                ToolbarIconButton(title: "系统电池设置", systemImage: "battery.100percent") {
-                    openSystemBatterySettings()
-                }
+                    ToolbarIconButton(title: "系统电池设置", systemImage: "battery.100percent") {
+                        openSystemBatterySettings()
+                    }
 
-                ToolbarIconButton(title: "刷新电池数据", systemImage: "arrow.clockwise", action: refresh)
+                    ToolbarIconButton(title: "刷新电池数据", systemImage: "arrow.clockwise", action: refresh)
+                }
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 10)
+        .padding(.vertical, 9)
         .glassPanel(cornerRadius: BatteryTruthTheme.Radius.panel)
     }
 
@@ -210,15 +213,23 @@ private struct BatteryHeroView: View {
 
     var body: some View {
         DashboardSection("Live Battery", systemImage: "battery.100percent", elevated: true) {
-            HStack(alignment: .center, spacing: 18) {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("真实电量")
-                        .font(BatteryTruthTheme.Font.label)
-                        .foregroundStyle(BatteryTruthTheme.ColorToken.textSecondary)
+            HStack(alignment: .center, spacing: 26) {
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("真实电量")
+                            .font(.system(.callout, design: .default, weight: .semibold))
+                            .foregroundStyle(BatteryTruthTheme.ColorToken.accent)
+
+                        Text("你的 Mac 正在上报什么，一眼看清。")
+                            .font(.system(size: 29, weight: .semibold, design: .default))
+                            .foregroundStyle(.primary)
+                            .lineLimit(2)
+                            .minimumScaleFactor(0.72)
+                    }
 
                     HStack(alignment: .firstTextBaseline, spacing: 5) {
                         Text(percentText)
-                            .font(.system(size: 70, weight: .semibold, design: .default))
+                            .font(.system(size: 78, weight: .semibold, design: .default))
                             .monospacedDigit()
                             .lineLimit(1)
                             .minimumScaleFactor(0.62)
@@ -228,9 +239,11 @@ private struct BatteryHeroView: View {
                             .foregroundStyle(BatteryTruthTheme.ColorToken.textSecondary)
                     }
 
-                    HStack(spacing: 8) {
-                        StatusPill(snapshot.statusText, style: snapshot.isCharging ? .normal : .neutral, systemImage: snapshot.isCharging ? "bolt.fill" : "powerplug")
-                        StatusPill(BatteryFormatter.power(monitor.telemetry?.signedBatteryPowerWatts), style: .neutral, systemImage: "bolt.circle")
+                    LiquidGlassSurfaceGroup(spacing: 8) {
+                        HStack(spacing: 8) {
+                            StatusPill(snapshot.statusText, style: snapshot.isCharging ? .normal : .neutral, systemImage: snapshot.isCharging ? "bolt.fill" : "powerplug")
+                            StatusPill(BatteryFormatter.power(monitor.telemetry?.signedBatteryPowerWatts), style: .neutral, systemImage: "bolt.circle")
+                        }
                     }
 
                     LastRefreshText(monitor: monitor, fallback: snapshot.timestamp)
@@ -239,7 +252,7 @@ private struct BatteryHeroView: View {
                 Spacer(minLength: 8)
 
                 PrecisionBatteryGauge(percent: percent, isCharging: snapshot.isCharging, style: statusStyle)
-                    .frame(width: 220, height: 104)
+                    .frame(width: 246, height: 116)
                     .layoutPriority(1)
             }
         }
@@ -266,7 +279,7 @@ private struct PrecisionBatteryGauge: View {
             HStack(spacing: spacing) {
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .fill(Color.black.opacity(0.18))
+                        .fill(Color.black.opacity(0.055))
                         .overlay {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
                                 .stroke(BatteryTruthTheme.ColorToken.border, lineWidth: 1)
@@ -290,7 +303,7 @@ private struct PrecisionBatteryGauge: View {
                     if isCharging {
                         Image(systemName: "bolt.fill")
                             .font(.system(size: 28, weight: .bold))
-                            .foregroundStyle(.white.opacity(0.92))
+                            .foregroundStyle(.white)
                             .frame(width: bodyWidth, height: proxy.size.height)
                     }
                 }
@@ -374,13 +387,15 @@ private struct ProtectionSection: View {
                 status: thermalLimitReached ? .warning : .normal
             )
 
-            HStack(spacing: 8) {
-                StatusPill(monitor.chargeLimitAlertActive ? "充电上限已触发" : "充电上限未触发", style: monitor.chargeLimitAlertActive ? .warning : .normal)
-                StatusPill(monitor.thermalLimitAlertActive ? "热保护已触发" : "热保护未触发", style: monitor.thermalLimitAlertActive ? .warning : .normal)
+            LiquidGlassSurfaceGroup(spacing: 8) {
+                HStack(spacing: 8) {
+                    StatusPill(monitor.chargeLimitAlertActive ? "充电上限已触发" : "充电上限未触发", style: monitor.chargeLimitAlertActive ? .warning : .normal)
+                    StatusPill(monitor.thermalLimitAlertActive ? "热保护已触发" : "热保护未触发", style: monitor.thermalLimitAlertActive ? .warning : .normal)
+                }
             }
             .lineLimit(1)
 
-            Text("基于真实电量和温度判断保护状态。当前 macOS 15 没有本 App 可直接调用的公开切断充电接口；macOS Tahoe 26.4+ 的系统级 Charge Limit 需在系统设置中启用。")
+            Text("基于真实电量和温度判断保护状态。macOS 14 到 macOS 26 没有本 App 可直接调用的公开切断充电接口；macOS Tahoe 26.4+ 的系统级 Charge Limit 需在系统设置中启用。")
                 .font(BatteryTruthTheme.Font.footnote)
                 .foregroundStyle(BatteryTruthTheme.ColorToken.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -583,32 +598,31 @@ private struct DashboardSettingsSection: View {
                     Button("测试本地提醒") {
                         monitor.postTestNotification()
                     }
-                    .buttonStyle(.plain)
                     .font(.system(.footnote, design: .default, weight: .semibold))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .glassCapsule()
+                    .buttonStyle(LiquidGlassButtonStyle())
                 }
 
                 SettingsGroup(title: "System Integration", systemImage: "gearshape.2") {
-                    HStack(spacing: 8) {
-                        SettingsLink {
-                            Text("App 设置")
-                        }
-                        .buttonStyle(.plain)
-                        .font(.system(.footnote, design: .default, weight: .semibold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .glassCapsule()
+                    LiquidGlassSurfaceGroup(spacing: 8) {
+                        HStack(spacing: 8) {
+                            SettingsLink {
+                                Text("App 设置")
+                            }
+                            .font(.system(.footnote, design: .default, weight: .semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .buttonStyle(LiquidGlassButtonStyle())
 
-                        Button("系统电池设置") {
-                            openSystemBatterySettings()
+                            Button("系统电池设置") {
+                                openSystemBatterySettings()
+                            }
+                            .font(.system(.footnote, design: .default, weight: .semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .buttonStyle(LiquidGlassButtonStyle())
                         }
-                        .buttonStyle(.plain)
-                        .font(.system(.footnote, design: .default, weight: .semibold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .glassCapsule()
                     }
                 }
 
@@ -616,11 +630,10 @@ private struct DashboardSettingsSection: View {
                     Button("复制诊断信息") {
                         monitor.copyDiagnostics()
                     }
-                    .buttonStyle(.plain)
                     .font(.system(.footnote, design: .default, weight: .semibold))
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
-                    .glassCapsule()
+                    .buttonStyle(LiquidGlassButtonStyle())
                 }
             }
         }
@@ -653,12 +666,9 @@ private struct SettingsGroup<Content: View>: View {
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background {
-            RoundedRectangle(cornerRadius: BatteryTruthTheme.Radius.card, style: .continuous)
-                .fill(Color.white.opacity(0.035))
-                .overlay {
-                    RoundedRectangle(cornerRadius: BatteryTruthTheme.Radius.card, style: .continuous)
-                        .stroke(BatteryTruthTheme.ColorToken.hairline, lineWidth: 0.7)
-                }
+            LiquidGlassSurface(style: .card, cornerRadius: BatteryTruthTheme.Radius.card) {
+                Color.clear
+            }
         }
     }
 }
@@ -825,5 +835,16 @@ private struct RevealModifier: ViewModifier {
 private extension View {
     func reveal(_ isVisible: Bool, delay: Double) -> some View {
         modifier(RevealModifier(isVisible: isVisible, delay: delay))
+    }
+
+    @ViewBuilder
+    func batteryScrollPhaseTracking(_ onChange: @escaping (Bool) -> Void) -> some View {
+        if #available(macOS 15.0, *) {
+            onScrollPhaseChange { _, newPhase in
+                onChange(newPhase.isScrolling)
+            }
+        } else {
+            self
+        }
     }
 }

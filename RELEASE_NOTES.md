@@ -1,6 +1,6 @@
 # BatteryTruth v1.0.2
 
-Real protection alerts release.
+Apple.com-style interface and macOS 14-26 support release.
 
 ## Highlights
 
@@ -9,14 +9,14 @@ Real protection alerts release.
 - Displays charging and discharging power from battery-controller voltage and current.
 - Shows battery temperature, virtual temperature, cycle count, adapter data, raw capacity data, and calculation source.
 - Uses the current Mac battery controller's `DesignCapacity`; it does not use a fixed model-capacity table.
-- Includes a full-window SwiftUI glass dashboard, menu bar display, and in-app settings.
+- Includes a full-window SwiftUI Apple.com-style light interface, menu bar display, and in-app settings.
 - Includes a macOS `.app` bundle in the release asset.
 - Sends local macOS notifications when real charge or battery temperature crosses the configured thresholds.
 - Shows live protection and notification status inside the settings panel.
 
 ## Requirements
 
-- macOS 15 or newer
+- macOS 14 through macOS 26
 - Apple laptop with an internal battery for full raw readings
 
 ## Notes

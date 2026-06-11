@@ -12,7 +12,6 @@ struct BatteryTruthApp: App {
         WindowGroup("BatteryTruth") {
             ContentView(monitor: monitor)
                 .frame(minWidth: 360, minHeight: 520)
-                .preferredColorScheme(.dark)
                 .background(WindowChromeConfigurator())
                 .onAppear {
                     monitor.start()
@@ -78,11 +77,11 @@ private struct WindowChromeConfigurator: NSViewRepresentable {
         window.titleVisibility = .hidden
         window.titlebarAppearsTransparent = true
         window.isOpaque = true
-        window.backgroundColor = NSColor(red: 0.055, green: 0.058, blue: 0.064, alpha: 1)
+        window.backgroundColor = NSColor(red: 0.980, green: 0.980, blue: 0.988, alpha: 1)
         window.styleMask.insert(.fullSizeContentView)
         window.contentView?.wantsLayer = true
         window.contentView?.layer?.isOpaque = true
-        window.contentView?.layer?.backgroundColor = NSColor(red: 0.055, green: 0.058, blue: 0.064, alpha: 1).cgColor
+        window.contentView?.layer?.backgroundColor = NSColor(red: 0.980, green: 0.980, blue: 0.988, alpha: 1).cgColor
     }
 }
 
